@@ -1,0 +1,76 @@
+---
+- name: remove Podman & its friends
+  dnf:
+    name: ['podman','skopeo','buildah']
+    state: absent
+    autoremove: true
+    update_cache: true
+
+- name: add dnf-utils, zip, & unzip
+  dnf:
+    name: ['dnf-utils','zip','unzip']
+    state: latest
+    install_weak_deps: true
+  when: ansible_facts['distribution'] == "OracleLinux"
+
+- name: add yum-utils, zip, & unzip
+  dnf:
+    name: ['yum-utils','zip','unzip']
+    state: latest
+    install_weak_deps: true
+  when:	ansible_facts['distribution'] == "CentOS"
+
+#- name: add docker-ce repository
+#  yum_repository:
+#    name: docker-ce-stable
+#    baseurl: https://download.docker.com/linux/centos/docker-ce.repo
+#    description: docker-ce-stable
+#    file: docker-ce
+#    state: present
+#    enabled: true
+
+- name: remove runc package
+  dnf:
+    name: runc
+    state: absent
+    autoremove: true
+  when: ansible_facts['distribution'] == "OracleLinux"
+
+- name: remove runc package
+  yum:
+    name: runc
+    state: absent
+    autoremove: true
+  when: ansible_facts['distribution'] == "CentOS"
+
+- name: add docker-ce repository
+  command:
+    yum-config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+ 
+- name: add docker packages
+  yum:
+    update_cache: true
+    name: docker-ce
+    state: latest
+    install_weak_deps: true
+
+- name: disable docker-ce repository
+  command:
+    yum-config-manager --set-disabled docker-ce-stable
+  when: ansible_facts['distribution'] == "OracleLinux"
+
+- name: disable docker-ce repository
+  command:
+    yum-config-manager --disable docker-ce-stable
+  when: ansible_facts['distribution'] == "CentOS"
+
+- name: start docker service
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  with_items:
+    - "docker.service"
+    - "containerd.service"
+
+...

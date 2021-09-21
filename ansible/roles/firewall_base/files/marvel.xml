@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <source ipset="reg"/>
+  <source ipset="sfarms"/>
+  <service name="ssh"/>
+  <service name="cockpit"/>
+  <service name="dhcpv6-client"/>
+  <icmp-block name="echo-request"/>
+  <icmp-block name="echo-reply"/>
+</zone>

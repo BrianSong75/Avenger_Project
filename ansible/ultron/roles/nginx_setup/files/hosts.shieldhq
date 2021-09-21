@@ -1,0 +1,23 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+192.168.1.105	kibana.mu www.kibana.mu
+192.168.1.105	elasticsearch.mu www.elasticsearch.mu
+192.168.1.105	logstash.mu www.logstash.mu
+
+192.168.1.137	proxy.dvwa.mu
+192.168.1.137	proxy.bwapp.mu
+192.168.1.137	proxy.mutillidae.mu
+
+192.168.1.135	proxy.dvwa.mu
+192.168.1.135	proxy.bwapp.mu
+192.168.1.135	proxy.mutillidae.mu
+
+192.168.1.116	proxy.dvwa.mu
+192.168.1.116	proxy.bwapp.mu
+192.168.1.116	proxy.mutillidae.mu
+
+
+192.168.0.106	dvwa.com www.dvwa.com
+192.168.0.106	bwapp.com www.bwapp.com
+192.168.0.106	mutillidae.com www.mutillidae.com

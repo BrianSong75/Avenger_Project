@@ -1,0 +1,122 @@
+---
+- name: copy ssh configuration file
+  copy:
+    src: sshd_config
+    dest: /etc/ssh/
+    owner: root
+    mode: '0600'
+
+- name: restart ssh service
+  service:
+    name: sshd
+    state: restarted
+    enabled: true
+
+- name: install & update firewalld
+  dnf:
+    update_cache: true
+    name: firewalld
+    state: latest
+    install_weak_deps: true
+
+- name: copy ipset files
+  copy:
+    src: "{{ item }}"
+    dest: /etc/firewalld/ipsets/
+    owner: root
+    mode: '0644'
+  with_items:
+    - "reg.xml"
+    - "sfarms.xml"
+
+- name: copy marvel zone definition file
+  copy:
+    src: "marvel.xml"
+    dest: /etc/firewalld/zones/
+    owner: root
+    mode: '0644'
+
+- name: copy firewalld configuration file
+  copy:
+    src: "firewalld.conf"
+    dest: /etc/firewalld/
+    owner: root
+    mode: '0600'
+
+- name: restart firewalld service
+  service:
+    name: firewalld
+    enabled: yes
+    state: restarted
+    use: service
+    pattern: '/usr/sbin/firewalld'
+    sleep: 30
+
+- name: move the interface to block zone
+  command:
+    firewall-cmd --permanent --zone=block --change-interface="{{ ansible_default_ipv4.interface }}"
+
+##If you want to stick to using ansible firewalld module to change the interface, use below tasks instead.##
+
+#- name: move the interface to block zone
+#    firewalld:
+#      zone: block
+#      interface: "{{ ansible_default_ipv4.interface }}"
+#      state: enabled
+#      permanent: true
+
+#- name: update NetworkManager config file regarding the interface
+#    replace:
+#      path: /etc/sysconfig/network-scripts/ifcfg-"{{ ansible_default_ipv4.interface }}"
+#      regexp: marvel
+#      replace: block
+#      owner: root
+#      mode: '0644'
+#      backup: true
+
+#- name: restart NetworkManager
+#    service:
+#      name: NetworkManager
+#      state: retarted
+#      enabled: true
+
+- name: correct ipset for ShieldFarm Servers
+  firewalld:
+    zone: marvel
+    source: ipset:reg
+    state: disabled
+    permanent: true
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: correct ipset for all other stations
+  firewalld:
+    zone: marvel
+    source: ipset:sfarms
+    state: disabled
+    permanent: true
+  when: ansible_facts ['hostname'] is not match("ShieldFarm*")
+
+- name: add http service for ShieldHQ & ShieldFarm servers
+  firewalld:
+    zone: marvel
+    service: http
+    state: enabled
+    permanent: true
+  when: ansible_facts ['hostname'] is match("Shield*")
+
+- name: additional services for ELK server
+  firewalld:
+    zone: marvel
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+  with_items:
+    - elasticsearch
+    - kibana
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: reload firewalld new settings
+  command:
+    firewall-cmd --reload
+
+...

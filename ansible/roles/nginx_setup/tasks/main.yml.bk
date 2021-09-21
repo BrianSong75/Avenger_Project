@@ -1,0 +1,187 @@
+---
+- name: install NGINX
+  dnf:
+    update_cache: true
+    name: nginx
+    state: latest
+    install_weak_deps: true
+
+- name: copy pre-configured nginx.conf to ShieldFarm Servers
+  copy:
+    src: nginx.conf.shieldfarms
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: change the IP addresses in the nginx.conf file to each corresponding ShieldFarm servers
+  replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '192.168.1.116'
+    replace: "{{ ansible_facts.default_ipv4.address }}"
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: change the log file names in each ShieldFarm servers
+  replace:
+    path: /etc/nginx/nginx.conf
+    regexp: "name.access.log"
+    replace: "{{ item }}_access.log"
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: copy pre-configured nginx.conf to ShieldHQ Server
+  copy:
+    src: nginx.conf.shieldhq
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts ['hostname'] == "ShieldHQ"
+
+- name: copy updated hosts file for all stations except Shield servers
+  copy:
+    src: hosts.gen
+    dest: /etc/hosts
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts ['hostname'] is not match("Shield*")
+
+- name: copy updated hosts file for ShieldFarm servers
+  copy:
+    src: hosts.shieldfarms
+    dest: /etc/hosts
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: copy updated hosts file for ShieldHQ server
+  copy:
+    src: hosts.shieldhq
+    dest: /etc/hosts
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts['hostname'] == "ShieldHQ"
+
+- name: copy pre-configured nginx.conf to BlackWidow Server
+  copy:
+    src: nginx.conf.bw
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: copy nginx directories & its files for each web applications on ShiedFarm Servers
+  copy:
+    src: /usr/share/nginx/
+    dest: /usr/share/{{ item }}
+    remote_src: true
+    owner: root
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: copy nginx directories & its files for BlackWidow
+  copy:
+    src: /usr/share/nginx/
+    dest: /usr/share/{{ item }}
+    remote_src: true
+    owner: root
+  with_items:
+    - kibana
+    - logstash
+    - elasticsearch
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: update index file content for each NGINX servers
+  replace:
+    path: /usr/share/{{ item }}/html/index.html
+    regexp: "Oracle Linux"
+    replace: "{{ ansible_facts.hostname }}"
+    backup: true
+    owner: root
+    mode: '0644'
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: update index file content for each ELK server
+  replace:
+    path: /usr/share/{{ item }}/html/index.html
+    regexp: "Oracle Linux"
+    replace: "{{ item }}"
+    backup: true
+    owner: root
+    mode: '0644'
+  with_items:
+    - kibana
+    - elasticsearch
+    - logstash
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: adding http service to firewalld
+  firewalld:
+    zone: marvel
+    service: http
+    state: enabled
+    permanent: true
+  when: ansible_facts ['hostname'] is match("Shield*")
+
+- name: adding kibana and elasticsearch services to firewalld
+  firewalld:
+    zone: marvel
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+  with_items:
+    - kibana
+    - elasticsearch
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: opening ports on ShieldFarm servers
+  firewalld:
+    zone: marvel
+    port: "{{ item }}"
+    state: enabled
+    permanent: true
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+  with_items:
+      - "18880/tcp"
+      - "18800/tcp"
+      - "18000/tcp"
+
+- name: reload firewalld
+  command:
+    firewall-cmd --reload
+
+- name: update assigned port information to SELinux
+  seport:
+    ports:
+      - "18880"
+      - "18800"
+      - "18000"
+    proto: tcp
+    setype: http_port_t
+    state: present
+    reload: true
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: start nginx service
+  service:
+    name: nginx
+    state: started
+    enabled: true
+        
+
+...

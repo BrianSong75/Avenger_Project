@@ -1,0 +1,7 @@
+---
+- name: update system packages
+  hosts: test
+  roles:
+
+    - system_update
+...

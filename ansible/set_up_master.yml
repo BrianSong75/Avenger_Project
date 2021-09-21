@@ -1,0 +1,14 @@
+---
+- name: Setting up hacking playground
+  hosts: init
+  roles:
+
+#    - system_update
+#    - firewall_base
+    - nginx_setup
+#    - docker_setup
+#    - web_app_setup
+#    - elk_container_setup
+
+
+...

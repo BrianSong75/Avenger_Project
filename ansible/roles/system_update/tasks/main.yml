@@ -1,0 +1,31 @@
+---
+- name: update dnf packages
+  dnf:
+    update_cache: true
+    name: "*"
+    state: latest
+    update_only: true
+    install_weak_deps: true
+  when:
+    ansible_facts ['distribution'] == "OracleLinux"
+
+- name: update yum packages
+  yum:
+    update_cache: true
+    name: "*"
+    state: latest
+    update_only: true
+    install_weak_deps: true
+
+- name: reboot
+  reboot:
+    connect_timeout: 60
+    msg: "Please wait while finalizing the updates...."
+    post_reboot_delay: 60
+    test_command: "pwd"
+  when:
+    - ansible_facts ['hostname'] != "WinterSoldier"
+    - ansible_facts ['hostname'] != "Jarvis"
+  
+
+...

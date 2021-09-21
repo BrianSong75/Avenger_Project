@@ -1,0 +1,8 @@
+---
+- name: install firewalld
+  hosts: test
+  roles:
+
+    - firewall_base
+
+...

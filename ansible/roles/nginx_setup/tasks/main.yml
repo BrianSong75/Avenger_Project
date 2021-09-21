@@ -1,0 +1,248 @@
+---
+- name: install NGINX
+  dnf:
+    update_cache: true
+    name: nginx
+    state: latest
+    install_weak_deps: true
+
+- name: copy pre-configured nginx.conf to all stations
+  copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    mode: '0644'
+    backup: true
+
+- name: copy server configuration files for web app servers
+  copy:
+    src: "{{ item }}.conf"
+    dest: /etc/nginx/conf.d/
+    owner: root
+    mode: '0644'
+    backup: true
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: update IP address in the configuration file for each web server
+  replace:
+    path: "/etc/nginx/conf.d/{{ item }}.conf"
+    regexp: "1.1.1.1"
+    replace: "{{ ansible_default_ipv4.address }}"
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: copy server configuration template file for load balancer
+  copy:
+    src: "dvwa_lb.conf"
+    dest: "/etc/nginx/conf.d/"
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts['hostname'] == "ShieldHQ"
+
+- name: copy server configuration template file to each server setup
+  copy:
+    src: "/etc/nginx/conf.d/dvwa_lb.conf"
+    dest: "/etc/nginx/conf.d/{{ item }}_lb.conf"
+    remote_src: true
+    owner: root
+    mode: '0644'
+    backup: true
+  with_items:
+    - bwapp
+    - mutillidae
+  when: ansible_facts['hostname'] == "ShieldHQ"
+
+- name: update each configuration file for load balancer
+  replace:
+    path: "/etc/nginx/conf.d/{{ item }}_lb.conf"
+    regexp: dvwa
+    replace: "{{ item }}"
+  with_items:
+    - bwapp
+    - mutillidae
+  when: ansible_facts['hostname'] == "ShieldHQ"
+
+- name: copy ELK server configuration template file for ELK server
+  copy:
+    src: "kibana.conf"
+    dest: "/etc/nginx/conf.d/"
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts['hostname'] == "BlackWidow"
+
+- name: copy each server configuration for ELK
+  copy:
+    src: "/etc/nginx/conf.d/kibana.conf"
+    dest: "/etc/nginx/conf.d/{{ item }}.conf"
+    remote_src: true
+    owner: root
+    mode: '0644'
+    backup: true
+  with_items:
+    - elasticsearch
+    - logstash
+  when: ansible_facts['hostname'] == "BlackWidow"
+
+- name: update each server configuration for ELK_name
+  replace:
+    path: "/etc/nginx/conf.d/{{ item }}.conf"
+    regexp: dvwa
+    replace: "{{ item }}"
+  with_items:
+    - elasticsearch
+    - logstash
+  when: ansible_facts['hostname'] == "BlackWidow"
+
+- name: update each server configuration for ELK_name_port
+  replace:
+    path: "/etc/nginx/conf.d/elasticsearch.conf"
+    regexp: '5601'
+    replace: '9200' 
+  when: ansible_facts['hostname'] == "BlackWidow"
+
+- name: update each server configuration for ELK_name_port
+  replace:
+    path: "/etc/nginx/conf.d/logstash.conf"
+    regexp: '5601'
+    replace: '5044'
+  when: ansible_facts['hostname'] == "BlackWidow"
+
+- name: copy updated hosts file for all stations except Shield servers
+  copy:
+    src: hosts.gen
+    dest: /etc/hosts
+    owner: root
+    mode: '0644'
+    backup: true
+  when:
+    - ansible_facts ['hostname'] is not match("Shield*")
+    - ansible_facts ['hostname'] != "BlackWidow"
+
+- name: copy updated hosts file for all Shield servers
+  copy:
+    src: hosts.shieldfarms
+    dest: /etc/hosts
+    owner: root
+    mode: '0644'
+    backup: true
+  when: ansible_facts['hostname'] is match("Shield*")
+
+- name: copy nginx directories & its files for each web applications on ShiedFarm Servers
+  copy:
+    src: /usr/share/nginx/
+    dest: /usr/share/{{ item }}
+    remote_src: true
+    owner: root
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: copy nginx directories & its files for BlackWidow
+  copy:
+    src: /usr/share/nginx/
+    dest: /usr/share/{{ item }}
+    remote_src: true
+    owner: root
+  with_items:
+    - kibana
+    - logstash
+    - elasticsearch
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: update index file content for each NGINX servers
+  replace:
+    path: /usr/share/{{ item }}/html/index.html
+    regexp: "Oracle Linux"
+    replace: "{{ item }}@{{ ansible_facts.hostname }}"
+    backup: true
+    owner: root
+    mode: '0644'
+  with_items:
+    - dvwa
+    - bwapp
+    - mutillidae
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: copy index files to each ELK server
+  copy:
+    src: "/usr/share/nginx/html/index.html"
+    dest: "/usr/share/{{ item }}/html/{{ item }}.html"
+    remote_src: true
+    owner: root
+    mode: '0644'
+    backup: true
+  with_items:
+   - kibana
+   - elasticsearch
+   - logstash
+  when: ansible_facts['hostname'] == "BlackWidow"
+
+- name: update index file content for each ELK server
+  replace:
+    path: /usr/share/{{ item }}/html/index.html
+    regexp: "Oracle Linux"
+    replace: "{{ item }}@{{ ansible_facts.hostname }}"
+    backup: true
+    owner: root
+    mode: '0644'
+  with_items:
+    - kibana
+    - elasticsearch
+    - logstash
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: adding http service to firewalld
+  firewalld:
+    zone: marvel
+    service: http
+    state: enabled
+    permanent: true
+  when:
+    - ansible_facts ['hostname'] is match("Shield*")
+    - ansible_facts ['hostname'] == "BlackWidow"
+
+- name: adding kibana and elasticsearch services to firewalld
+  firewalld:
+    zone: marvel
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+  with_items:
+    - kibana
+    - elasticsearch
+  when: ansible_facts ['hostname'] == "BlackWidow"
+
+- name: reload firewalld
+  command:
+    firewall-cmd --reload
+
+- name: update assigned port information to SELinux
+  seport:
+    ports:
+      - "18880"
+      - "18800"
+      - "18000"
+    proto: tcp
+    setype: http_port_t
+    state: present
+    reload: true
+  when: ansible_facts['hostname'] is match("ShieldFarm*")
+
+- name: start nginx service
+  service:
+    name: nginx
+    state: started
+    enabled: true
+        
+...

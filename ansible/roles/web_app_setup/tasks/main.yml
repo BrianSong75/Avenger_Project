@@ -1,0 +1,70 @@
+---
+- name: install python2-pip
+  dnf:
+    name: python2-pip
+    state: present
+    install_weak_deps: true
+    update_cache: true
+  when: ansible_facts['distribution'] == "OracleLinux"
+
+- name: install python2-pip for CentOS
+  yum:
+    name: python2-pip
+    state: present
+    install_weak_deps: true
+    update_cache: true
+  when: ansible_facts['distribution'] == "CentOS"
+
+- name: start DVWA server
+  vars:
+    ansible_python_interpreter: /usr/bin/python2
+  docker_container:
+    name: dvwa
+    image: cyberxsecurity/dvwa
+    log_driver: syslog
+    log_options:
+      syslog-address: tcp://127.0.0.1:514
+      syslog-facility: daemon
+      tag: dvwa
+    ports:
+      - "18880:80"
+    restart_policy: always
+    state: started
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: start BWAPP server
+  vars:
+    ansible_python_interpreter: /usr/bin/python2
+  docker_container:
+    name: bwapp
+    image: cyberxsecurity/bwapp
+    log_driver: syslog
+    log_options:
+      syslog-address: tcp://127.0.0.1:514
+      syslog-facility: daemon
+      tag: bwapp
+    ports:
+      - "18800:80"
+    restart_policy: always
+    state: started
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+- name: start MUTILLIDAE server
+  vars:
+    ansible_python_interpreter: /usr/bin/python2
+  docker_container:
+    name: mutillidae
+    image: cyberxsecurity/mutillidae
+    log_driver: syslog
+    log_options:
+      syslog-address: tcp://127.0.0.1:514
+      syslog-facility: daemon
+      tag: mutillidae
+    ports:
+      - "18000:80"
+      - "3306:3306"
+    restart_policy: always
+    state: started  
+  when: ansible_facts ['hostname'] is match("ShieldFarm*")
+
+...

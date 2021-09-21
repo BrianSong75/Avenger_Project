@@ -1,0 +1,15 @@
+---
+- name: office tester
+  hosts: ultron
+  become: true
+  roles:
+
+    - system_update
+    - firewall_base
+    - nginx_setup_ultron
+#    - docker_setup
+#    - web_app_setup
+#    - elk_container_setup
+
+
+...

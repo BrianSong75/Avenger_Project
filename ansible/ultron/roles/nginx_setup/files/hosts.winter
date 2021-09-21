@@ -1,0 +1,21 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+192.168.0.106   dvwa.mu www.dvwa.mu
+192.168.0.106   bwapp.mu www.bwapp.mu
+192.168.0.106   mutillidae.mu www.mutillidae.mu
+
+192.168.0.104   kibana.mu www.kibana.mu
+192.168.0.104   elasticsearch.mu www.elasticsearch.mu
+192.168.0.104   logstash.mu www.logstash.mu
+
+192.168.1.105   kibana.mu www.kibana.mu
+192.168.1.105   elasticsearch.mu www.elasticsearch.mu
+192.168.1.105   logstash.mu www.logstash.mu
+
+192.168.1.106   dvwa.mu www.dvwa.mu
+192.168.1.106   bwapp.mu www.bwapp.mu
+192.168.1.106   mutillidae.mu www.mutillidae.mu
+
+
+
